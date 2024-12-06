@@ -1,0 +1,93 @@
+replicaCount: 1
+
+imagePullSecrets:
+  - name: gitlab-credentials
+nameOverride: ""
+fullnameOverride: "commerce-medusa"
+image:
+  pullPolicy: Always
+
+helper:
+  create: false
+  image:
+    repository: helper-image
+    tag: 1.0.4
+
+backend:
+  enabled: true
+  image:
+    repository: gitlab.hycom.pl:4567/composable/commerce/medusa
+  container:
+    healthprobe:
+      enabled: false
+    port: 9000
+    liveness_path: /
+    readiness_path: /
+  service:
+    port: 9000
+
+frontend:
+  enabled: false
+  image:
+    repository: frontend-image
+  container:
+    healthprobe:
+      enabled: false
+    port: 80
+    liveness_path: /index.html
+    readiness_path: /index.html
+  service:
+    port: 80
+
+serviceAccount:
+  create: false
+  annotations: { }
+  name: app-sa
+
+podSecurityContext: { }
+
+service:
+  type: ClusterIP
+  annotations: {
+    name: "commerce-medusa",
+    description: "commerce-medusa",
+    prometheus.io/scrape: 'true',
+    prometheus.io/path: '/metrics',
+    prometheus.io/port: '4001'
+  }
+
+podannotations: {
+  sidecar.istio.io/proxyCPU: '100m',
+  sidecar.istio.io/proxyMemory: '156Mi',
+  sidecar.istio.io/proxyMemoryLimit: '256Mi',
+  sidecar.istio.io/proxyCPULimit: '500m',
+  readiness.status.sidecar.istio.io/initialDelaySeconds: "30",
+  readiness.status.sidecar.istio.io/periodSeconds: "20"
+}
+
+customLabels: {
+  commerce: "medusa"
+}
+
+deployannotations: {
+  "sidecar.jaegertracing.io/inject": project
+}
+
+resources: 
+  requests:
+    cpu: "64m"
+    memory: "512Mi"
+  limits:
+    cpu: "500"
+    memory: "2048Mi"
+
+nodeSelector:
+  app/selfcare-tst: "true"
+
+tolerations: [ ]
+
+affinity: { }
+
+environments:
+  PORT: 9000
+  NODE_ENV: test
